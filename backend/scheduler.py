@@ -57,9 +57,13 @@ def schedule(tasks: list[Task], availability: Availability,
                 break
             take = min(day["free"], remaining)
             if take > 0:
+                # Blocks follow each other: the next one starts where the last ended
+                start_hour = availability.day_start + day["available"] - day["free"]
                 day["blocks"].append(Block(
                     task_id=task.id, course=task.course,
                     title=task.title, hours=take,
+                    start=f"{start_hour:02d}:00",
+                    end=f"{start_hour + take:02d}:00",
                 ))
                 day["free"] -= take
                 remaining -= take

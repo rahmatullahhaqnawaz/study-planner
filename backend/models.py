@@ -35,12 +35,15 @@ class Availability(BaseModel):
     friday: DayHours = 3
     saturday: DayHours = 5
     sunday: DayHours = 5
+    day_start: int = Field(default=9, ge=0, le=23)   # first study hour, 9 = 09:00
 
     def hours_on(self, day: date) -> int:
         # date.weekday(): Monday = 0 ... Sunday = 6
         names = ["monday", "tuesday", "wednesday", "thursday",
                  "friday", "saturday", "sunday"]
-        return getattr(self, names[day.weekday()])
+        hours = getattr(self, names[day.weekday()])
+        # Never plan past midnight
+        return min(hours, 24 - self.day_start)
 
 
 class ScheduleRequest(BaseModel):
@@ -60,6 +63,8 @@ class Block(BaseModel):
     course: str
     title: str
     hours: int
+    start: str   # "09:00"
+    end: str     # "11:00"
 
 
 class DayPlan(BaseModel):
@@ -79,3 +84,17 @@ class AtRiskTask(BaseModel):
 class ScheduleResponse(BaseModel):
     days: list[DayPlan]
     at_risk: list[AtRiskTask]
+
+
+# ---------- Assistant ----------
+
+class AssistantRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    question: str = Field(min_length=1, max_length=1000)
+    tasks: list[Task] = []
+
+
+class AssistantResponse(BaseModel):
+    answer: str
+    source: Literal["ai", "offline"]   # "offline" = built-in tips, no API key needed

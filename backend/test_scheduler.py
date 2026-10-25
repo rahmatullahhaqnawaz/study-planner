@@ -122,3 +122,22 @@ def test_api_rejects_empty_title():
                        "deadline": "2026-10-28", "est_hours": 2}]}
     response = client.post("/api/schedule", json=body)
     assert response.status_code == 422
+
+
+# ---------- Block times ----------
+
+def test_blocks_get_start_and_end_times():
+    a = make_task("a", date(2026, 10, 26), hours=1, priority=1)
+    b = make_task("b", date(2026, 10, 26), hours=2, priority=2)
+    result = schedule([a, b], Availability(day_start=16), MONDAY)
+    first, second = result.days[0].blocks
+    assert (first.start, first.end) == ("16:00", "17:00")
+    assert (second.start, second.end) == ("17:00", "19:00")
+
+
+def test_never_plans_past_midnight():
+    late = Availability(day_start=22, monday=5)
+    task = make_task("a", date(2026, 10, 26), hours=5)
+    result = schedule([task], late, MONDAY)
+    assert result.days[0].planned_hours == 2
+    assert result.days[0].blocks[0].end == "24:00"
